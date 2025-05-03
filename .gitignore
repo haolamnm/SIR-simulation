@@ -1,6 +1,8 @@
 # Sublime Text
 *.sublime-project
 *.sublime-workspace
+log/
+src/main.cpp
 
 # Prerequisites
 *.d
