@@ -1,14 +1,9 @@
-#include "Person.h"
+#include "person.h"
 
-#include "Disease.h"
+#include <stdexcept>
+
 #include "Utils.h"
-
-Person::Person() {
-    // Init a person as Susceptible
-    status = Status::Susceptible;
-    remain_incubated_days = -1;
-    remain_infected_days = -1;
-}
+#include "disease.h"
 
 bool Person::incubate(int days_in_incubation) {
     // Only when Status is Susceptible
@@ -55,18 +50,26 @@ bool Person::die() {
 }
 
 void Person::update(const Disease *disease) {
+    if (disease == nullptr) {
+        throw std::invalid_argument("Disease pointer cannot be null");
+    }
+
     switch (status) {
         case Status::Susceptible:
             // NOTE: Susceptible -> Incubated only available in SISa model
             break;
         case Status::Incubated:
-            remain_incubated_days -= 1;
+            if (remain_incubated_days > 0) {
+                remain_incubated_days -= 1;
+            }
             if (remain_incubated_days == 0) {
                 infect(disease->get_days_with_symptoms());
             }
             break;
         case Status::Infected:
-            remain_infected_days -= 1;
+            if (remain_infected_days > 0) {
+                remain_infected_days -= 1;
+            }
             if (remain_infected_days == 0) {
                 // A Person has a small chance being dead
                 if (get_chance() < disease->get_fatality_rate()) {
@@ -84,13 +87,21 @@ void Person::update(const Disease *disease) {
     }
 }
 
+bool Person::is_susceptible() const {
+    return status == Status::Susceptible;
+}
+
 bool Person::is_infectious() const {
     // NOTE: Both Incubated and Infected is infectious
     return status == Status::Incubated || status == Status::Infected;
 }
 
-int Person::get_status() const {
-    return static_cast<int>(status);
+bool Person::is_removed() const {
+    return status == Status::Recovered || status == Status::Dead;
+}
+
+Status Person::get_status() const {
+    return status;
 }
 
 char Person::get_symbol() const {
