@@ -1,0 +1,112 @@
+[tool.ruff]
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr", ".direnv", ".eggs", ".git", ".git-rewrite", ".hg",
+    ".ipynb_checkpoints", ".mypy_cache", ".nox", ".pants.d",
+    ".pyenv", ".pytest_cache", ".pytype", ".ruff_cache", ".svn",
+    ".tox", ".venv", ".vscode", "__pypackages__", "_build",
+    "buck-out", "build", "dist", "node_modules", "site-packages",
+    "venv", ".venv",
+]
+line-length = 120
+indent-width = 4
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    # Core PEP8 enforcement
+    "E",    # PEP8 style guidelines (pycodestyle)
+    "F",    # Error detection (pyflakes)
+    "W",    # PEP8 warning rules (pycodestyle)
+
+    # Modern Python practices
+    "UP",   # Pyupgrade: Modernize Python syntax
+    "B",    # Bugbear: Catch anti-patterns
+    "SIM",  # Simplify: Simplify complex code patterns
+    "A",    # Builtins: Prevent shadowing built-in names
+
+    # Type-related checks
+    "ANN",  # Annotations: Type hint enforcement
+
+    # Security checks
+    "S",    # Bandit: Security-related issues
+
+    # Error prevention
+    "PLE",  # Pylint errors: Critical error patterns
+    "PLW",  # Pylint warnings: Important warnings
+    "TRY",  # Tryceratops: Better exception handling
+
+    # Code style
+    "COM",  # Commas: Consistent comma usage
+    "ISC",  # Implicit string concatenation detection
+    "ICN",  # Import conventions: Standardized aliases
+
+    # Import organization
+    "I",    # isort: Import sorting
+
+    # Performance checks
+    "PERF", # Perflint: Performance optimizations
+
+    # Testing best practices
+    "PT",   # Pytest style: Proper test structure
+
+    # Code quality
+    "RUF",  # Ruff-specific improvements
+    "PIE",  # Flake8-pie: Smart code patterns
+    "N",    # Naming: PEP8 naming conventions
+    "C4",   # McCabe: Cyclomatic complexity
+    "RET",  # Return: Consistent return statements
+    "T",    # Debugger: Prevent committed debug statements
+
+    # Others
+    # "ASYNC",  # Async: Proper async/await patterns
+    # "BLE",    # Blind except: Prevent broad except clauses
+]
+ignore = [
+    # Docstring rules (pydocstyle)
+    "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107",
+    "D200", "D203", "D205", "D212", "D400", "D401", "D415",
+
+    # Line length (handled by formatter)
+    "E501",
+
+    # Type hint exemptions
+    "ANN101",  # Missing self type annotation
+    "ANN102",  # Missing cls type annotation
+
+    # Project-specific exemptions
+    "PLW0603",  # Global variable usage
+    "TRY003",   # Verbose exception messages
+    "S311",     # Cryptographically insecure randomness
+    "RET503",   # Explicit return None
+    "SIM108",   # Ternary operator preference
+    "SIM300",   # Yoda conditions
+    "Q003",     # Docstring first line ending
+]
+unfixable = [
+    "F401",   # Unused imports
+    "F841",   # Unused variables
+]
+# Allow underscore-prefixed unused variables
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["E402", "F401"]
+"**/{tests,docs,tools}/*" = ["E402"]
+"test_*.py" = ["D101", "D103"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = false
+docstring-code-line-length = "dynamic"
+
+[tool.black]
+line-length = 120
+target-version = ["py312"]
+
+[tool.isort]
+profile = "black"
+line_length = 120

@@ -1,0 +1,30 @@
+{
+    "include": [
+        "src",
+        "bindings"
+    ],
+    "exclude": [
+        "**/build",
+        "**/__pycache__",
+        "**/.venv"
+    ],
+    "ignore": [],
+    "stubPath": "bindings",
+    "typeCheckingMode": "basic",
+    "useLibraryCodeForTypes": true,
+    "venvPath": ".",
+    "venv": ".venv",
+    "pythonVersion": "3.12",
+    "pythonPlatform": "Windows",
+    "defineConstant": {
+        "DEBUG": true
+    },
+    "extraPaths": [
+        "./src",
+        "./build",
+        "./bindings/",
+        "./include",
+        "./.venv/Lib/site-packages"
+    ],
+    "executionEnvironments": []
+}
