@@ -1,66 +1,78 @@
 #include "Population.h"
 
-#include <iostream>
 #include <queue>
 #include <random>
+#include <stdexcept>
+#include <string>
 #include <vector>
 
-#include "Disease.h"
-#include "Person.h"
-#include "Utils.h"
+#include "disease.h"
+#include "person.h"
+#include "utils.h"
 
 Population::Population(int size, int travel_radius, int encounters, int init_incubations,
-                       int init_infections, const Disease &disease) {
-    // Init population attributes
-    this->size = size;
-    this->travel_radius = travel_radius;
-    this->encounters = encounters;
-    this->disease = &disease;
-    status_count.resize(STATUS, 0);
+                       int init_infections, const Disease &disease, const std::string &name)
+    : size(size),
+      travel_radius(travel_radius),
+      encounters(encounters),
+      disease(disease),
+      name(name) {
+    // Validate arguments
+    if (init_incubations < 0 || init_infections < 0) {
+        throw std::invalid_argument("Initial incubations and infections must be non-negative");
+    }
+    if (init_incubations < init_infections) {
+        throw std::invalid_argument(
+            "Initial incubation must be greater than or equal to initial infections");
+    }
+    if (init_incubations + init_infections > size * size) {
+        throw std::invalid_argument("Initial incubations and infections exceed population size");
+    }
+    validate();
 
-    // Init a grid of people
+    // Initialize grid of people
     people.resize(size);
-    for (int row = 0; row < size; ++row) {
-        people[row].resize(size, nullptr);
-        for (int col = 0; col < size; ++col) {
-            people[row][col] = new Person();
+    for (auto &row : people) {
+        row.resize(size);
+        for (auto &person : row) {
+            person = std::make_unique<Person>();
         }
     }
 
-    // Init some Incubations and Infections
-    std::vector<Person *> flattened = flatten();
-    std::vector<Person *> incubations = sample(flattened, init_incubations);
+    // Initialize some Incubations and Infections
+    std::vector<Person *> flat = flatten();
+    std::vector<Person *> incubations = sample(flat, init_incubations);
     std::vector<Person *> infections = sample(incubations, init_infections);
 
-    for (Person *person : incubations) {
+    for (auto person : incubations) {
         person->incubate(disease.get_days_in_incubation());
     }
-    for (Person *person : infections) {
+    for (auto person : infections) {
         person->infect(disease.get_days_with_symptoms());
     }
 
-    // Update status statistics
-    for (int row = 0; row < size; ++row) {
-        for (int col = 0; col < size; ++col) {
-            Person *person = people[row][col];
-
-            status_count[person->get_status()] += 1;
+    // Update status counts
+    for (int i = 0; i < size; ++i) {
+        for (int j = 0; j < size; ++j) {
+            if (people[i][j].get() == nullptr) continue;
+            Status status = people[i][j]->get_status();
+            status_count[static_cast<int>(status)] += 1;
         }
     }
 }
 
 void Population::update() {
-    std::vector<int> new_status_count(STATUS, 0);
+    std::vector<int> new_status_count(status_count.size(), 0);
 
     // Get previous infectious people
     std::queue<Person *> infectious_people = get_infectious();
-    int index = 0;
 
     // For a time step
     // For each person in population
-    for (int row = 0; row < size; ++row) {
-        for (int col = 0; col < size; ++col) {
-            Person *person = people[row][col];
+    for (int i = 0; i < size; ++i) {
+        for (int j = 0; j < size; ++j) {
+            Person *person = people[i][j].get();
+            if (person == nullptr) continue;
 
             // If current person is infectious in previous time step
             // Get encountered person, let them interact each other
@@ -69,45 +81,93 @@ void Population::update() {
             // infections
             if (person == infectious_people.front()) {
                 infectious_people.pop();
-                for (Person *encounered : get_encountered(row, col)) {
+                for (Person *encounered : get_encountered(i, j)) {
                     interact(person, encounered);
                 }
             }
             // Internally update each person
-            person->update(disease);
+            person->update(&disease);
+            Status status = person->get_status();
 
             // Update new status statistics
-            new_status_count[person->get_status()] += 1;
+            new_status_count[static_cast<int>(status)] += 1;
         }
     }
     status_count = new_status_count;
 }
 
-void Population::view() const {
-    for (int row = 0; row < size; ++row) {
-        for (int col = 0; col < size; ++col) {
-            std::cout << people[row][col]->get_symbol() << ' ';
+std::vector<std::vector<int>> Population::get_people() const {
+    std::vector<std::vector<int>> grid;
+    grid.resize(size, std::vector<int>(size, -1));
+
+    for (int i = 0; i < size; ++i) {
+        for (int j = 0; j < size; ++j) {
+            if (people[i][j].get() == nullptr) continue;
+            Status status = people[i][j]->get_status();
+            grid[i][j] = static_cast<int>(status);
         }
-        std::cout << '\n';
     }
-    std::cout << '\n' << std::flush;
+    return grid;
 }
 
-void Population::stats() const {
-    int total = 0;
-    for (int s = 0; s < STATUS; ++s) {
-        total += status_count[s];
-        std::cout << status_count[s] << ' ';
+const std::vector<int> &Population::get_status_count() const {
+    return status_count;
+}
+
+int Population::get_size() const {
+    return size;
+}
+
+int Population::get_travel_radius() const {
+    return travel_radius;
+}
+
+int Population::get_encounters() const {
+    return encounters;
+}
+
+std::string Population::get_name() const {
+    return name;
+}
+
+void Population::set_travel_radius(int radius) {
+    travel_radius = radius;
+    validate();
+}
+
+void Population::set_encounters(int encounters) {
+    this->encounters = encounters;
+    validate();
+}
+
+void Population::set_name(const std::string &name) {
+    this->name = name;
+}
+
+void Population::validate() const {
+    if (size <= 0) {
+        throw std::invalid_argument("Size must be positive");
     }
-    std::cout << total << '\n' << std::flush;
+    if (travel_radius < 0) {
+        throw std::invalid_argument("Travel radius must be non-negative");
+    }
+    if (encounters < 0) {
+        throw std::invalid_argument("Encounters must be non-negative");
+    }
+    if (status_count.size() != 5) {
+        throw std::invalid_argument("Status count must have 5 elements");
+    }
 }
 
 std::vector<Person *> Population::flatten() const {
-    std::vector<Person *> result;
-    for (const std::vector<Person *> &row : people) {
-        result.insert(result.end(), row.begin(), row.end());
+    std::vector<Person *> flat;
+    flat.reserve(size * size);
+    for (const auto &row : people) {
+        for (const auto &person : row) {
+            if (person) flat.push_back(person.get());
+        }
     }
-    return result;
+    return flat;
 }
 
 std::vector<Person *> Population::sample(std::vector<Person *> people, int count) const {
@@ -115,14 +175,15 @@ std::vector<Person *> Population::sample(std::vector<Person *> people, int count
     std::mt19937 gen(rd());
     std::uniform_int_distribution<> dist(0, people.size() - 1);
 
-    std::vector<Person *> result;
-    result.reserve(count);
+    std::vector<Person *> sample;
+    sample.reserve(count);
 
+    // NOTE: Same person could appear multiple times
     for (int i = 0; i < count; ++i) {
         int index = dist(gen);
-        result.push_back(people[index]);
+        sample.push_back(people[index]);
     }
-    return result;
+    return sample;
 }
 
 std::vector<Person *> Population::get_encountered(int row, int col) const {
@@ -140,10 +201,10 @@ std::vector<Person *> Population::get_encountered(int row, int col) const {
     std::vector<Person *> neighbors;
     neighbors.reserve(neighbors_size);
 
-    for (int r = start_row; r <= end_row; ++r) {
-        for (int c = start_col; c <= end_col; ++c) {
-            if (r == row && c == col) continue;
-            neighbors.push_back(people[r][c]);
+    for (int i = start_row; i <= end_row; ++i) {
+        for (int j = start_col; j <= end_col; ++j) {
+            if (i == row && j == col) continue;
+            neighbors.push_back(people[i][j].get());
         }
     }
     // Sample encountered neighbors
@@ -151,27 +212,32 @@ std::vector<Person *> Population::get_encountered(int row, int col) const {
 }
 
 std::queue<Person *> Population::get_infectious() const {
-    std::queue<Person *> result;
+    std::queue<Person *> infections;
 
-    for (int row = 0; row < size; ++row) {
-        for (int col = 0; col < size; ++col) {
-            if (people[row][col]->is_infectious()) {
-                result.push(people[row][col]);
+    for (int i = 0; i < size; ++i) {
+        for (int j = 0; j < size; ++j) {
+            Person *person = people[i][j].get();
+            if (person == nullptr) continue;
+
+            if (person->is_infectious()) {
+                infections.push(person);
             }
         }
     }
-    return result;
+    return infections;
 }
 
 bool Population::interact(Person *current, Person *other) {
     // NOTE: If other person is already infectious, the
     // current person cannot transfer the disease
-    if (other->is_infectious()) {
+    if (current == nullptr || other == nullptr || !current->is_infectious() ||
+        !other->is_susceptible()) {
         return false;
     }
     // If the other person is not infectious, try to infect by transmission rate
-    if (get_chance() < disease->get_transmission_rate()) {
-        other->incubate(disease->get_days_in_incubation());
+    // NOTE: Actually only when other is Susceptile
+    if (get_chance() < disease.get_transmission_rate()) {
+        other->incubate(disease.get_days_in_incubation());
         return true;
     }
     return false;
