@@ -1,6 +1,6 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-float get_chance();
+double get_chance();
 
 #endif
