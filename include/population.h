@@ -28,6 +28,9 @@ class Population {
     Population(int size, int travel_radius, int encounters, int init_incubations,
                int init_infections, const Disease &disease, const std::string &name = "");
 
+    Population(const Population &) = delete;
+    Population &operator=(const Population &) = delete;
+
     void update();
 
     std::vector<std::vector<int>> get_people() const;
