@@ -9,7 +9,7 @@
         "**/.venv"
     ],
     "ignore": [],
-    "stubPath": "bindings",
+    "stubPath": "bindings/ssir",
     "typeCheckingMode": "basic",
     "useLibraryCodeForTypes": true,
     "venvPath": ".",
@@ -20,7 +20,7 @@
         "DEBUG": true
     },
     "extraPaths": [
-        "./src",
+        "./bindings/ssir",
         "./build",
         "./bindings/",
         "./include",

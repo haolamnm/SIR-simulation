@@ -18,9 +18,9 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 file(GLOB_RECURSE SOURCES "${CMAKE_SOURCE_DIR}/src/*.cpp")
 
 # Build the native executable
-add_executable(${PROJECT_NAME} ${SOURCES})
-target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)
+# add_executable(${PROJECT_NAME} ${SOURCES})
+# target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
 # Build the Python extension module
-pybind11_add_module(ssir-module bindings/ssir.cpp ${SOURCES})
-target_include_directories(ssir-module PRIVATE ${CMAKE_SOURCE_DIR}/include)
+pybind11_add_module(ssir bindings/ssir.cpp ${SOURCES})
+target_include_directories(ssir PRIVATE ${CMAKE_SOURCE_DIR}/include)
