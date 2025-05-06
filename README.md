@@ -1,5 +1,7 @@
 # The SSIR Module
 
+![Simulation Demo](examples/simulation.gif)
+
 I started this side project to explore the potential of using C++17 code as the foundation for a Python module. The idea is to develop a simulation program that requires high performance.
 
 ## Overview
