@@ -1,6 +1,8 @@
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 
+#include <memory>
+
 #include "disease.h"
 #include "model.h"
 #include "person.h"
@@ -24,8 +26,8 @@ PYBIND11_MODULE(ssir, m) {
         .export_values();
 
     // Bind Disease class
-    py::class_<Disease>(m, "Disease", "Represents a disease with epidemiological parameters")
-        .def(py::init<>(), "Default constructor, initializes all parameters to zero or empty.")
+    py::class_<Disease, std::shared_ptr<Disease>>(
+        m, "Disease", "Represents a disease with epidemiological parameters")
         .def(py::init<double, double, int, int, const std::string &>(),
              py::arg("transmission_rate"), py::arg("fatality_rate"), py::arg("days_in_incubation"),
              py::arg("days_with_symptoms"), py::arg("name") = "",
@@ -51,8 +53,7 @@ PYBIND11_MODULE(ssir, m) {
     // Bind Population class
     py::class_<Population, std::shared_ptr<Population>>(
         m, "Population", "Represents a population on a grid for simulating disease spread")
-        .def(py::init<>(), "Default constructor, initializes minimal population.")
-        .def(py::init<int, int, int, int, int, const Disease &, const std::string &>(),
+        .def(py::init<int, int, int, int, int, std::shared_ptr<Disease>, const std::string &>(),
              py::arg("size"), py::arg("travel_radius"), py::arg("encounters"),
              py::arg("init_incubations"), py::arg("init_infections"), py::arg("disease"),
              py::arg("name") = "",
@@ -111,22 +112,6 @@ PYBIND11_MODULE(ssir, m) {
              "Args:\n"
              "    days_in_simulation (int): Total number of days to simulate (non-negative).\n"
              "    population (Population): The population being simulated.\n"
-             "    name (str, optional): Name of the model.\n"
-             "Raises:\n"
-             "    ValueError: If parameters are invalid.")
-        .def(py::init<int, int, int, int, int, int, const Disease &, const std::string &>(),
-             py::arg("days_in_simulation"), py::arg("size"), py::arg("travel_radius"),
-             py::arg("encounters"), py::arg("init_incubations"), py::arg("init_infections"),
-             py::arg("disease"), py::arg("name") = "",
-             "Initialize a Model with the given simulation duration and population parameters.\n"
-             "Args:\n"
-             "    days_in_simulation (int): Total number of days to simulate (non-negative).\n"
-             "    size (int): Population grid size (size x size).\n"
-             "    travel_radius (int): Maximum encounter distance (non-negative).\n"
-             "    encounters (int): Number of interactions per person (non-negative).\n"
-             "    init_incubations (int): Number of initially incubated persons (non-negative).\n"
-             "    init_infections (int): Number of initially infected persons (non-negative).\n"
-             "    disease (Disease): Disease parameters.\n"
              "    name (str, optional): Name of the model.\n"
              "Raises:\n"
              "    ValueError: If parameters are invalid.")
