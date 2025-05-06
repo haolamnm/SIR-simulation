@@ -2,7 +2,7 @@
 #define POPULATION_H
 
 #include <memory>
-#include <queue>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -15,21 +15,25 @@
  * */
 class Population {
    private:
-    Disease disease;                                           ///< Disease parameters
     int size = 1;                                              ///< Grid size (size x size)
     int travel_radius = 1;                                     ///< Maximum encounter distance
     int encounters = 1;                                        ///< Number of encounters per person
+    std::shared_ptr<Disease> disease;                          ///< Disease parameters
     std::vector<std::vector<std::unique_ptr<Person>>> people;  ///< 2D grid of Persons
     std::vector<int> status_count = std::vector<int>(5, 0);    ///< Counts of each Status
     std::string name = "";                                     ///< Name of the population
+    std::vector<Person *> infectious_people;                   ///< Keep track of infectious people
+    std::vector<std::vector<std::vector<Person *>>>
+        neighbors;  ///< Precomputed neighbors for each person
+
+    mutable std::mt19937 rng;  ///< Random number generator
 
    public:
-    Population() = default;
     Population(int size, int travel_radius, int encounters, int init_incubations,
-               int init_infections, const Disease &disease, const std::string &name = "");
+               int init_infections, std::shared_ptr<Disease> disease, const std::string &name = "");
 
-    Population(const Population &) = delete;
-    Population &operator=(const Population &) = delete;
+    // Population(const Population &) = delete;
+    // Population &operator=(const Population &) = delete;
 
     void update();
 
@@ -51,8 +55,9 @@ class Population {
     std::vector<Person *> sample(std::vector<Person *> people, int count) const;
 
     std::vector<Person *> get_encountered(int row, int col) const;
-    std::queue<Person *> get_infectious() const;
+    // std::queue<Person *> get_infectious() const;
     bool interact(Person *current, Person *other);
+    double get_chance() const;
 };
 
 #endif
