@@ -25,8 +25,6 @@ class Model {
    public:
     Model(int days_in_simulation, std::shared_ptr<Population> population,
           const std::string &name = "");
-    Model(int days_in_simulation, int size, int travel_radius, int encounters, int init_incubations,
-          int init_infections, const Disease &disease, const std::string &name = "");
 
     bool simulate(int days);
 
@@ -41,5 +39,7 @@ class Model {
 
    private:
 };
+
+void print_progress_bar(int progress, int total, int bar_width = 50);
 
 #endif
