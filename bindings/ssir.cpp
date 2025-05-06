@@ -1,5 +1,7 @@
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#include <pybind11/stl_bind.h>
 
 #include <memory>
 
@@ -10,11 +12,20 @@
 
 namespace py = pybind11;
 
+PYBIND11_MAKE_OPAQUE(std::vector<int>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::vector<int>>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::vector<std::vector<int>>>);
+
 PYBIND11_MODULE(ssir, m) {
     m.doc() = "Python bindings foor SIR disease simulation model";
 
     // Register exception translation
     py::register_exception<std::invalid_argument>(m, "ValueError");
+
+    // Bind nested vector type
+    pybind11::bind_vector<std::vector<int>>(m, "VectorInt");
+    pybind11::bind_vector<std::vector<std::vector<int>>>(m, "VectorVectorInt");
+    pybind11::bind_vector<std::vector<std::vector<std::vector<int>>>>(m, "VectorVectorVectorInt");
 
     // Bind Status enum
     py::enum_<Status>(m, "Status", "Disease status of a person")
@@ -53,10 +64,11 @@ PYBIND11_MODULE(ssir, m) {
     // Bind Population class
     py::class_<Population, std::shared_ptr<Population>>(
         m, "Population", "Represents a population on a grid for simulating disease spread")
-        .def(py::init<int, int, int, int, int, std::shared_ptr<Disease>, const std::string &>(),
+        .def(py::init<int, int, int, int, int, std::shared_ptr<Disease>, unsigned int,
+                      const std::string &>(),
              py::arg("size"), py::arg("travel_radius"), py::arg("encounters"),
              py::arg("init_incubations"), py::arg("init_infections"), py::arg("disease"),
-             py::arg("name") = "",
+             py::arg("seed") = 0, py::arg("name") = "",
              "Initialize a Population with the given parameters.\n"
              "Args:\n"
              "    size (int): Grid size (size x size, positive).\n"
@@ -65,10 +77,14 @@ PYBIND11_MODULE(ssir, m) {
              "    init_incubations (int): Number of initially incubated persons (non-negative).\n"
              "    init_infections (int): Number of initially infected persons (non-negative).\n"
              "    disease (Disease): Disease parameters.\n"
+             "    seed (int): Seed for the RNG.\n"
              "    name (str, optional): Name of the population.\n"
              "Raises:\n"
              "    ValueError: If parameters are invalid.")
         .def("update", &Population::update, "Update the population for one time step.")
+        .def(
+            "reset", [](Population &self, bool same_seed) { self.reset(same_seed); },
+            py::arg("same_seed") = false, "Reset the population to its initial state.")
         .def_property_readonly(
             "people",
             [](const Population &self) {
@@ -102,7 +118,8 @@ PYBIND11_MODULE(ssir, m) {
         .def_property("encounters", &Population::get_encounters, &Population::set_encounters,
                       "Number of interactions per person (non-negative).")
         .def_property("name", &Population::get_name, &Population::set_name,
-                      "Name of the population.");
+                      "Name of the population.")
+        .def_property("seed", &Population::get_seed, &Population::set_seed, "Seed of the RNG.");
 
     // Bind Model class
     py::class_<Model>(m, "Model", "Represents a SIR model for simulating disease spread")
@@ -124,6 +141,9 @@ PYBIND11_MODULE(ssir, m) {
             "    bool: True if simulation succeeded.\n"
             "Raises:\n"
             "    ValueError: If days is invalid.")
+        .def(
+            "reset", [](Model &self, bool same_seed) { self.reset(same_seed); },
+            py::arg("same_seed") = false, "Reset the model to its initial state")
         .def_property_readonly(
             "data",
             [](const Model &self) {
