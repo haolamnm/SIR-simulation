@@ -1,9 +1,12 @@
 #include "person.h"
 
+#include <random>
 #include <stdexcept>
+#include <utility>
 
-#include "Utils.h"
 #include "disease.h"
+
+Person::Person(int i, int j) : i(i), j(j), status(Status::Susceptible) {}
 
 bool Person::incubate(int days_in_incubation) {
     // Only when Status is Susceptible
@@ -49,7 +52,7 @@ bool Person::die() {
     return true;
 }
 
-void Person::update(const Disease *disease) {
+void Person::update(const Disease *disease, std::mt19937 &rng) {
     if (disease == nullptr) {
         throw std::invalid_argument("Disease pointer cannot be null");
     }
@@ -72,7 +75,7 @@ void Person::update(const Disease *disease) {
             }
             if (remain_infected_days == 0) {
                 // A Person has a small chance being dead
-                if (get_chance() < disease->get_fatality_rate()) {
+                if (get_chance(rng) < disease->get_fatality_rate()) {
                     die();
                 } else {
                     recover();
@@ -119,4 +122,13 @@ char Person::get_symbol() const {
         default:
             return '?';
     }
+}
+
+std::pair<int, int> Person::get_position() const {
+    return std::make_pair(i, j);
+}
+
+double Person::get_chance(std::mt19937 &rng) const {
+    std::uniform_real_distribution<double> dist(0.0, 1.0);
+    return dist(rng);
 }

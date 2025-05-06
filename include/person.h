@@ -1,6 +1,8 @@
 #ifndef PERSON_H
 #define PERSON_H
 
+#include <random>
+
 #include "disease.h"
 
 /**
@@ -23,15 +25,17 @@ class Person {
     Status status = Status::Susceptible;  ///< Current disease status
     int remain_incubated_days = -1;       ///< Remaining days in incubation period
     int remain_infected_days = -1;        ///< Remaining days with symptoms
+    int i;                                ///< The y coordinate in grid
+    int j;                                ///< The x coordinate in grid
 
    public:
-    Person() = default;
+    Person(int i, int j);
 
     bool incubate(int days_in_incubation);
     bool infect(int days_with_symptoms);
     bool recover();
     bool die();
-    void update(const Disease *disease);
+    void update(const Disease *disease, std::mt19937 &rng);
 
     bool is_susceptible() const;
     bool is_infectious() const;
@@ -39,8 +43,10 @@ class Person {
 
     Status get_status() const;
     char get_symbol() const;
+    std::pair<int, int> get_position() const;
 
    private:
+    double get_chance(std::mt19937 &rng) const;
 };
 
 #endif
