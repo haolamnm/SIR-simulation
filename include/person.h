@@ -25,8 +25,8 @@ class Person {
     Status status = Status::Susceptible;  ///< Current disease status
     int remain_incubated_days = -1;       ///< Remaining days in incubation period
     int remain_infected_days = -1;        ///< Remaining days with symptoms
-    int i;                                ///< The y coordinate in grid
-    int j;                                ///< The x coordinate in grid
+    int i;                                ///< The row coordinate in grid
+    int j;                                ///< The col coordinate in grid
 
    public:
     Person(int i, int j);
