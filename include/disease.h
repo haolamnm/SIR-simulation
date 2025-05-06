@@ -16,7 +16,6 @@ class Disease {
     std::string name = "";           ///< Name of the disease
 
    public:
-    Disease() = default;
     Disease(double transmission_rate, double fatality_rate, int days_in_incubation,
             int days_with_symptoms, const std::string &name = "");
 
