@@ -10,7 +10,11 @@
 
 Model::Model(int days_in_simulation, std::shared_ptr<Population> population,
              const std::string &name)
-    : remain_days(days_in_simulation), population(std::move(population)), name(name) {
+    : remain_days(days_in_simulation),
+      current_day(1),
+      days_in_simulation(days_in_simulation),
+      population(std::move(population)),
+      name(name) {
     if (this->population.get() == nullptr) {
         throw std::invalid_argument("Population shared pointer cannot be null");
     }
@@ -18,8 +22,11 @@ Model::Model(int days_in_simulation, std::shared_ptr<Population> population,
         throw std::invalid_argument("Days in simulation must be non-negative");
     }
     // Reserve all the necessary memory
-    data.reserve(days_in_simulation);
-    stats.reserve(days_in_simulation);
+    data.reserve(days_in_simulation + 1);
+    stats.reserve(days_in_simulation + 1);
+
+    stats.push_back(this->population->get_status_count());
+    data.push_back(this->population->get_people());
 }
 
 bool Model::simulate(int days = -1) {
@@ -52,6 +59,22 @@ bool Model::simulate(int days = -1) {
     std::cout << std::endl;
 
     return true;
+}
+
+void Model::reset(bool same_seed) {
+    // Reset time
+    remain_days = days_in_simulation;
+    current_day = 1;
+
+    // Reset population
+    population->reset(same_seed);
+
+    // Reset internal data
+    data.clear();
+    data.push_back(population->get_people());
+
+    stats.clear();
+    stats.push_back(population->get_status_count());
 }
 
 const std::vector<std::vector<std::vector<int>>> &Model::get_data() const {
@@ -87,9 +110,6 @@ void print_progress_bar(int progress, int total, int bar_width) {
     int filled = static_cast<int>(percent * bar_width / 100.0f);
     std::string bar(filled, '#');
     bar += std::string(bar_width - filled, '-');
-    // std::cout << "\r[Day: " << std::setw(3) << std::setfill('0') << progress << "/" << total
-    //           << "] [" << bar << "] " << std::fixed << std::setprecision(1) << percent << "%"
-    //           << std::flush;
     std::cout << "\r[" << bar << "] " << std::fixed << std::setprecision(1) << percent << "%"
               << std::flush;
 }

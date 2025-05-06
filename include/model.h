@@ -15,6 +15,7 @@ class Model {
    private:
     int remain_days = 0;                     ///< Remaining days until the simulation finishes
     int current_day = 1;                     ///< Current day of the simulation
+    int days_in_simulation = 1;              ///< Total days of the entire simulation
     std::shared_ptr<Population> population;  ///< Shared pointer to population being simulated
     std::string name = "";                   ///< Name of the model
 
@@ -27,6 +28,7 @@ class Model {
           const std::string &name = "");
 
     bool simulate(int days);
+    void reset(bool same_seed = false);
 
     const std::vector<std::vector<std::vector<int>>> &get_data() const;
     const std::vector<std::vector<int>> &get_stats() const;
