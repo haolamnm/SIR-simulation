@@ -10,6 +10,7 @@ class Population:
         init_incubations: int,
         init_infections: int,
         disease: Disease,
+        seed: int = 0,
         name: str = "",
     ) -> None:
         """Initializes the Population object with various parameters."""
@@ -19,8 +20,12 @@ class Population:
         """Advances the simulation by one day."""
         ...
 
+    def reset(self, same_seed: bool = False) -> None:
+        """Reset the population to its initial state."""
+        ...
+
     @property
-    def people(self) -> NDArray[Shape["*, *, [size, size]"], Int]:
+    def people(self) -> NDArray[Shape["*, *, [size, size]"], Int]:  # noqa: F722
         """2D numpy array of shape (size, size), each cell is int representing status."""
         ...
 
@@ -50,6 +55,11 @@ class Population:
         """Returns the name of the population."""
         ...
 
+    @property
+    def seed(self) -> int:
+        """Returns the seed of the RNG."""
+        ...
+
     @travel_radius.setter
     def travel_radius(self, radius: int) -> None:
         """Sets the travel radius."""
@@ -63,4 +73,9 @@ class Population:
     @name.setter
     def name(self, name: str) -> None:
         """Sets the name of the population."""
+        ...
+
+    @seed.setter
+    def seed(self, seed: int) -> None:
+        """Sets the sed of the RNG."""
         ...

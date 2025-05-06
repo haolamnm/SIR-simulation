@@ -1,5 +1,4 @@
 from nptyping import Int, NDArray, Shape
-from ssir.disease import Disease
 from ssir.population import Population
 
 class Model:
@@ -7,17 +6,21 @@ class Model:
         """Initializes the Model object with the population and simulation parameters."""
         ...
 
-    def simulate(self, days: int) -> NDArray[Shape["*, *, *, [days, size, size]"], Int]:
+    def simulate(self, days: int) -> NDArray[Shape["*, *, *, [days, size, size]"], Int]:  # noqa: F722
         """Returns 3D numpy array of shape (days, size, size) representing infection state over time."""
         ...
 
+    def reset(self, same_seed: bool = False) -> None:
+        """Reset model to its initial state."""
+        ...
+
     @property
-    def data(self) -> NDArray[Shape["*, *, *, [days, size, size]"], Int]:
+    def data(self) -> NDArray[Shape["*, *, *, [days, size, size]"], Int]:  # noqa: F722
         """3D numpy array of infection data over time (days, size, size)."""
         ...
 
     @property
-    def stats(self) -> NDArray[Shape["*, 5, [days, statuses]"], Int]:
+    def stats(self) -> NDArray[Shape["*, 5, [days, statuses]"], Int]:  # noqa: F722
         """2D numpy array of shape (5, size) representing status counts over time."""
         ...
 
