@@ -2,15 +2,17 @@
 
 ![Simulation Demo](examples/simulation.gif)
 
-I started this side project to explore the potential of using C++17 code as the foundation for a Python module. The idea is to develop a simulation program that requires high performance.
+You are viewing a simulation where **3** cases initiate an outbreak across a population of **900.000** people.
 
 ## Overview
 
+I started this side project to explore the potential of using C++17 code as the foundation for a Python module. The idea is to develop a simulation program that requires high performance.
+
 The model simulates a grid where individuals move between different states: Susceptible, Incubated (exposed), Infected, Recovered, and Dead. You can use matplotlib in Python to visualize the statistics over time. See [`examples/visualize.py`](examples/visualize.py).
 
-I've learned how to combine C++17 code with Python using [pybind11](https://github.com/pybind/pybind11). This setup provides the efficiency of C++ and the flexibility of Python. I also gained experience organizing a project with bindings, stub files, and writing basic CMake configurations to build and expose C++ modules to Python.
+I've learned how to combine C++17 code with Python using [**pybind11**](https://github.com/pybind/pybind11). This setup provides the efficiency of C++ and the flexibility of Python. I also gained experience organizing a project with bindings, stub files, and writing basic CMake configurations to build and expose C++ modules to Python.
 
-This model is mainly inspired by [Outbreak](https://meltingasphalt.com/interactive/outbreak/).
+This model is mainly inspired by [**Outbreak**](https://meltingasphalt.com/interactive/outbreak/).
 
 ## How to Run
 
