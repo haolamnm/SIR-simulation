@@ -1,10 +1,17 @@
-from nptyping import NDArray, Shape, Int
+from nptyping import Int, NDArray, Shape
 from ssir.disease import Disease
 
 class Population:
-    def __init__(self, size: int, travel_radius: int, encounters: int,
-                 init_incubations: int, init_infections: int, disease: Disease,
-                 name: str = "") -> None:
+    def __init__(
+        self,
+        size: int,
+        travel_radius: int,
+        encounters: int,
+        init_incubations: int,
+        init_infections: int,
+        disease: Disease,
+        name: str = "",
+    ) -> None:
         """Initializes the Population object with various parameters."""
         ...
 
@@ -13,7 +20,7 @@ class Population:
         ...
 
     @property
-    def people(self) -> NDArray[Shape["*, *"], Int]:
+    def people(self) -> NDArray[Shape["*, *, [size, size]"], Int]:
         """2D numpy array of shape (size, size), each cell is int representing status."""
         ...
 

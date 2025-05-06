@@ -1,6 +1,5 @@
 from .disease import Disease
-from .population import Population
 from .model import Model
+from .population import Population
 
-
-__all__ = ["Disease", "Population", "Model"]
+__all__ = ["Disease", "Model", "Population"]
