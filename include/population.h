@@ -15,27 +15,29 @@
  * */
 class Population {
    private:
-    int size = 1;                                              ///< Grid size (size x size)
-    int travel_radius = 1;                                     ///< Maximum encounter distance
-    int encounters = 1;                                        ///< Number of encounters per person
-    std::shared_ptr<Disease> disease;                          ///< Disease parameters
-    std::vector<std::vector<std::unique_ptr<Person>>> people;  ///< 2D grid of Persons
+    int size = 1;                      ///< Grid size (size x size)
+    int travel_radius = 1;             ///< Maximum encounter distance
+    int encounters = 1;                ///< Number of encounters per person
+    int init_incubations = 1;          ///< Initial number of incubated people for reset logic
+    int init_infections = 0;           ///< Initial number of infected people for reset logic
+    unsigned int seed = 0;             ///< Seed for the RNG
+    std::string name = "";             ///< Name of the population
+    std::shared_ptr<Disease> disease;  ///< Disease parameters
+    mutable std::mt19937 rng;          ///< Random number generator
+
     std::vector<int> status_count = std::vector<int>(5, 0);    ///< Counts of each Status
-    std::string name = "";                                     ///< Name of the population
     std::vector<Person *> infectious_people;                   ///< Keep track of infectious people
+    std::vector<std::vector<std::unique_ptr<Person>>> people;  ///< 2D grid of Persons
     std::vector<std::vector<std::vector<Person *>>>
         neighbors;  ///< Precomputed neighbors for each person
 
-    mutable std::mt19937 rng;  ///< Random number generator
-
    public:
     Population(int size, int travel_radius, int encounters, int init_incubations,
-               int init_infections, std::shared_ptr<Disease> disease, const std::string &name = "");
-
-    // Population(const Population &) = delete;
-    // Population &operator=(const Population &) = delete;
+               int init_infections, std::shared_ptr<Disease> disease, unsigned int seed = 0,
+               const std::string &name = "");
 
     void update();
+    void reset(bool same_seed = false);
 
     std::vector<std::vector<int>> get_people() const;
     const std::vector<int> &get_status_count() const;
@@ -43,10 +45,12 @@ class Population {
     int get_travel_radius() const;
     int get_encounters() const;
     std::string get_name() const;
+    unsigned int get_seed() const;
 
     void set_travel_radius(int radius);
     void set_encounters(int encounters);
     void set_name(const std::string &name);
+    void set_seed(unsigned int seed);
 
    private:
     void validate() const;
@@ -55,9 +59,8 @@ class Population {
     std::vector<Person *> sample(std::vector<Person *> people, int count) const;
 
     std::vector<Person *> get_encountered(int row, int col) const;
-    // std::queue<Person *> get_infectious() const;
     bool interact(Person *current, Person *other);
-    double get_chance() const;
+    double get_chance(std::mt19937 &rng) const;
 };
 
 #endif

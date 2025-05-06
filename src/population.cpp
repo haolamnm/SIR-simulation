@@ -1,6 +1,6 @@
 #include "population.h"
 
-#include <iostream>
+#include <cmath>
 #include <memory>
 #include <random>
 #include <stdexcept>
@@ -11,13 +11,15 @@
 #include "person.h"
 
 Population::Population(int size, int travel_radius, int encounters, int init_incubations,
-                       int init_infections, std::shared_ptr<Disease> disease,
+                       int init_infections, std::shared_ptr<Disease> disease, unsigned int seed,
                        const std::string &name)
     : size(size),
       travel_radius(travel_radius),
       encounters(encounters),
       disease(std::move(disease)),
-      name(name) {
+      name(name),
+      init_incubations(init_incubations),
+      init_infections(init_infections) {
     // Validate arguments
     if (this->disease.get() == nullptr) {
         throw std::invalid_argument("Disase shared pointer cannot be null");
@@ -36,7 +38,8 @@ Population::Population(int size, int travel_radius, int encounters, int init_inc
 
     // Initalize the random number generator
     std::random_device rd;
-    rng.seed(rd());
+    this->seed = (seed == 0) ? rd() : seed;
+    rng.seed(this->seed);
 
     // Initialize status counts
     status_count.resize(5, 0);
@@ -79,24 +82,18 @@ Population::Population(int size, int travel_radius, int encounters, int init_inc
         person->infect(this->disease->get_days_with_symptoms());
     }
 
-    // Update status counts
+    // Update status count and current infectious people
+    // NOTE: At peak infectious people counts will be equal to the population size
+    infectious_people.reserve(size * size);
     for (int i = 0; i < size; ++i) {
         for (int j = 0; j < size; ++j) {
             Person *person = people[i][j].get();
             if (person == nullptr) continue;
+
             Status status = person->get_status();
             status_count[static_cast<int>(status)] += 1;
-        }
-    }
 
-    // Initialize infectious people in class member
-    int incubated_count = status_count[static_cast<int>(Status::Incubated)];
-    int infected_count = status_count[static_cast<int>(Status::Infected)];
-    infectious_people.reserve(incubated_count + infected_count);
-    for (int i = 0; i < size; ++i) {
-        for (int j = 0; j < size; ++j) {
-            Person *person = people[i][j].get();
-            if (person != nullptr && person->is_infectious()) {
+            if (person->is_infectious()) {
                 infectious_people.push_back(person);
             }
         }
@@ -104,6 +101,9 @@ Population::Population(int size, int travel_radius, int encounters, int init_inc
 }
 
 void Population::update() {
+    // NOTE: Stop early if the population is already stable
+    if (infectious_people.empty()) return;
+
     std::vector<int> new_status_count(status_count.size(), 0);
     std::vector<Person *> new_infectious_people;
 
@@ -112,13 +112,7 @@ void Population::update() {
         for (int j = 0; j < size; ++j) {
             Person *person = people[i][j].get();
             if (person == nullptr) continue;
-
             person->update(disease.get(), rng);
-            if (person->is_infectious()) {
-                new_infectious_people.push_back(person);
-            }
-            Status status = person->get_status();
-            new_status_count[static_cast<int>(status)] += 1;
         }
     }
 
@@ -137,40 +131,90 @@ void Population::update() {
         }
     }
 
+    // Phase 3: Collect the new infectious people and update new status counts
+    for (int i = 0; i < size; ++i) {
+        for (int j = 0; j < size; ++j) {
+            Person *person = people[i][j].get();
+            if (person->is_infectious()) {
+                new_infectious_people.push_back(person);
+            }
+            Status status = person->get_status();
+            new_status_count[static_cast<int>(status)] += 1;
+        }
+    }
+
     infectious_people = new_infectious_people;
     status_count = new_status_count;
+}
 
-    // OLD VERSION: BOTTLE NECK PERFORMANCE
-    // // Get previous infectious people
-    // std::queue<Person *> infectious_people = get_infectious();
+void Population::reset(bool same_seed) {
+    // Reset RNG for deterministically behavior
+    if (same_seed) {
+        rng.seed(this->seed);
+    }
 
-    // // For a time step
-    // // For each person in population
-    // for (int i = 0; i < size; ++i) {
-    //     for (int j = 0; j < size; ++j) {
-    //         Person *person = people[i][j].get();
-    //         if (person == nullptr) continue;
+    // Reset people grid
+    people.clear();
+    people.resize(size);
+    for (int i = 0; i < size; ++i) {
+        people[i].resize(size);
+        for (int j = 0; j < size; ++j) {
+            people[i][j] = std::make_unique<Person>(i, j);
+        }
+    }
 
-    //         // If current person is infectious in previous time step
-    //         // Get encountered person, let them interact each other
-    //         // NOTE: Avoiding the situation where a newly infected person
-    //         // infects other people in the loop creating a chain of unwanted
-    //         // infections
-    //         if (person == infectious_people.front()) {
-    //             infectious_people.pop();
-    //             for (Person *encounered : get_encountered(i, j)) {
-    //                 interact(person, encounered);
-    //             }
-    //         }
-    //         // Internally update each person
-    //         person->update(&disease);
-    //         Status status = person->get_status();
+    // Recompute neighbors
+    // NOTE: Clear people left the neighbor pointers become dangling
+    neighbors.clear();
+    neighbors.resize(size, std::vector<std::vector<Person *>>(size));
+    for (int i = 0; i < size; ++i) {
+        for (int j = 0; j < size; ++j) {
+            for (int di = -travel_radius; di <= travel_radius; ++di) {
+                for (int dj = -travel_radius; dj <= travel_radius; ++dj) {
+                    int ni = i + di;
+                    int nj = j + dj;
+                    if (ni >= 0 && ni < size && nj >= 0 && nj < size && !(di == 0 && dj == 0)) {
+                        neighbors[i][j].push_back(people[ni][nj].get());
+                    }
+                }
+            }
+        }
+    }
 
-    //         // Update new status statistics
-    //         new_status_count[static_cast<int>(status)] += 1;
-    //     }
-    // }
-    // status_count = new_status_count;
+    // Reset tracking information
+    status_count.clear();
+    status_count.resize(5, 0);
+    infectious_people.clear();
+
+    // Apply initial statuses
+    // NOTE: Recreate initial state by calling sample to achieve the same RNG state
+    std::vector<Person *> candidates = flatten();
+    std::vector<Person *> incubations = sample(candidates, init_incubations);
+    std::vector<Person *> infections = sample(incubations, init_infections);
+
+    // Apply statuses to selected people
+    // NOTE: Missing "this" has caused a severe bug in the constructor
+    for (auto person : incubations) {
+        person->incubate(disease->get_days_in_incubation());
+    }
+    for (auto person : infections) {
+        person->infect(disease->get_days_with_symptoms());
+    }
+
+    // Update status count and current infectious people
+    for (int i = 0; i < size; ++i) {
+        for (int j = 0; j < size; ++j) {
+            Person *person = people[i][j].get();
+            if (person == nullptr) continue;
+
+            Status status = person->get_status();
+            status_count[static_cast<int>(status)] += 1;
+
+            if (person->is_infectious()) {
+                infectious_people.push_back(person);
+            }
+        }
+    }
 }
 
 std::vector<std::vector<int>> Population::get_people() const {
@@ -207,6 +251,10 @@ std::string Population::get_name() const {
     return name;
 }
 
+unsigned int Population::get_seed() const {
+    return seed;
+}
+
 void Population::set_travel_radius(int radius) {
     travel_radius = radius;
     validate();
@@ -219,6 +267,10 @@ void Population::set_encounters(int encounters) {
 
 void Population::set_name(const std::string &name) {
     this->name = name;
+}
+
+void Population::set_seed(unsigned int seed) {
+    this->seed = seed;
 }
 
 void Population::validate() const {
@@ -273,47 +325,7 @@ std::vector<Person *> Population::get_encountered(int row, int col) const {
         return {};
     }
     return sample(neighbors[row][col], encounters);
-
-    // OLD VERSION
-    // // Calculate indices of the neighbors
-    // // NOTE: Can use modulo to wrap around the other side
-    // int start_row = std::max(row - travel_radius, 0);
-    // int start_col = std::max(col - travel_radius, 0);
-
-    // int end_row = std::min(row + travel_radius, size - 1);
-    // int end_col = std::min(col + travel_radius, size - 1);
-
-    // // Gather the neighbors
-    // int neighbors_size = (end_row - start_row + 1) * (end_col - start_col + 1);
-
-    // std::vector<Person *> neighbors;
-    // neighbors.reserve(neighbors_size);
-
-    // for (int i = start_row; i <= end_row; ++i) {
-    //     for (int j = start_col; j <= end_col; ++j) {
-    //         if (i == row && j == col) continue;
-    //         neighbors.push_back(people[i][j].get());
-    //     }
-    // }
-    // // Sample encountered neighbors
-    // return sample(neighbors, encounters);
 }
-
-// std::queue<Person *> Population::get_infectious() const {
-//     std::queue<Person *> infections;
-
-//     for (int i = 0; i < size; ++i) {
-//         for (int j = 0; j < size; ++j) {
-//             Person *person = people[i][j].get();
-//             if (person == nullptr) continue;
-
-//             if (person->is_infectious()) {
-//                 infections.push(person);
-//             }
-//         }
-//     }
-//     return infections;
-// }
 
 bool Population::interact(Person *current, Person *other) {
     // NOTE: If other person is already infectious, the
@@ -324,14 +336,15 @@ bool Population::interact(Person *current, Person *other) {
     }
     // If the other person is not infectious, try to infect by transmission rate
     // NOTE: Actually only when other is Susceptile
-    if (get_chance() < disease->get_transmission_rate()) {
+    double transmission_rate = std::pow(disease->get_transmission_rate(), 3.0);
+    if (get_chance(rng) < transmission_rate) {
         other->incubate(disease->get_days_in_incubation());
         return true;
     }
     return false;
 }
 
-double Population::get_chance() const {
+double Population::get_chance(std::mt19937 &rng) const {
     std::uniform_real_distribution<double> dist(0.0, 1.0);
     return dist(rng);
 }
